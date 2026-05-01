@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch cá nhân</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 10px;
+    background: #f5f6fa;
+  }
+
+  h2 {
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .calendar {
+    width: 100%;
+    max-width: 500px;
+    margin: auto;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    background: #2f3542;
+    color: white;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+
+  td {
+    width: 14.28%;
+    height: 60px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 16px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  td:hover {
+    background: #f1f2f6;
+  }
+
+  /* BIGGER X MARK */
+  .marked::after {
+    content: "X";
+    color: red;
+    font-weight: bold;
+    font-size: 26px; /* increased size */
+    position: absolute;
+    top: 6px;
+    right: 10px;
+  }
+
+  /* Today highlight */
+  .today {
+    background: #dfe4ff;
+    font-weight: bold;
+    border-radius: 6px;
+  }
+
+  /* Previous/next month days */
+  .other-month {
+    color: #b2bec3;
+    background: #fafafa;
+  }
+
+  @media (max-width: 480px) {
+    td {
+      height: 50px;
+      font-size: 14px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="calendar">
+  <h2 id="monthYear"></h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>CN</th>
+        <th>T2</th>
+        <th>T3</th>
+        <th>T4</th>
+        <th>T5</th>
+        <th>T6</th>
+        <th>T7</th>
+      </tr>
+    </thead>
+    <tbody id="calendarBody"></tbody>
+  </table>
+</div>
+
+<script>
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const todayDate = today.getDate();
+
+  const monthNames = [
+    "Tháng 1","Tháng 2","Tháng 3","Tháng 4",
+    "Tháng 5","Tháng 6","Tháng 7","Tháng 8",
+    "Tháng 9","Tháng 10","Tháng 11","Tháng 12"
+  ];
+
+  document.getElementById("monthYear").innerText =
+    `${monthNames[month]} ${year}`;
+
+  function generateCalendar(year, month) {
+    const tbody = document.getElementById("calendarBody");
+    tbody.innerHTML = "";
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    let row = document.createElement("tr");
+
+    // 🔹 Fill previous month's days
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const cell = document.createElement("td");
+      cell.innerText = prevMonthDays - i;
+      cell.classList.add("other-month");
+      row.appendChild(cell);
+    }
+
+    // 🔹 Current month
+    for (let day = 1; day <= totalDays; day++) {
+      const cell = document.createElement("td");
+      cell.innerText = day;
+
+      const key = `${year}-${month}-${day}`;
+
+      // Load saved mark
+      if (localStorage.getItem(key) === "X") {
+        cell.classList.add("marked");
+      }
+
+      // Highlight today
+      if (day === todayDate) {
+        cell.classList.add("today");
+      }
+
+      cell.addEventListener("click", () => {
+        if (cell.classList.contains("marked")) {
+          cell.classList.remove("marked");
+          localStorage.removeItem(key);
+        } else {
+          cell.classList.add("marked");
+          localStorage.setItem(key, "X");
+        }
+      });
+
+      row.appendChild(cell);
+
+      if ((firstDay + day) % 7 === 0) {
+        tbody.appendChild(row);
+        row = document.createElement("tr");
+      }
+    }
+
+    tbody.appendChild(row);
+  }
+
+  generateCalendar(year, month);
+</script>
+
+</body>
+</html>
