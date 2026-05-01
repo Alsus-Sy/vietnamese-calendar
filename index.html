@@ -11,11 +11,7 @@
     margin: 0;
     padding: 10px;
     background: #f5f6fa;
-  }
-
-  h2 {
     text-align: center;
-    margin: 10px 0;
   }
 
   .calendar {
@@ -28,6 +24,12 @@
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   }
 
+  select {
+    padding: 8px;
+    margin: 10px 0;
+    font-size: 16px;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -36,53 +38,37 @@
   th {
     background: #2f3542;
     color: white;
-    padding: 10px 0;
-    font-size: 14px;
+    padding: 10px;
   }
 
   td {
     width: 14.28%;
     height: 60px;
-    text-align: center;
-    vertical-align: middle;
-    font-size: 16px;
-    position: relative;
     cursor: pointer;
+    position: relative;
   }
 
   td:hover {
     background: #f1f2f6;
   }
 
-  /* BIGGER X MARK */
+  /* BIG X */
   .marked::after {
     content: "X";
     color: red;
+    font-size: 28px;
     font-weight: bold;
-    font-size: 26px; /* increased size */
     position: absolute;
-    top: 6px;
-    right: 10px;
+    top: 5px;
+    right: 8px;
   }
 
-  /* Today highlight */
   .today {
     background: #dfe4ff;
-    font-weight: bold;
-    border-radius: 6px;
   }
 
-  /* Previous/next month days */
   .other-month {
     color: #b2bec3;
-    background: #fafafa;
-  }
-
-  @media (max-width: 480px) {
-    td {
-      height: 50px;
-      font-size: 14px;
-    }
   }
 </style>
 </head>
@@ -90,18 +76,20 @@
 <body>
 
 <div class="calendar">
+
   <h2 id="monthYear"></h2>
+
+  <!-- 👇 Dropdown for people -->
+  <select id="personSelect">
+    <option value="person1">Person 1</option>
+    <option value="person2">Person 2</option>
+  </select>
 
   <table>
     <thead>
       <tr>
-        <th>CN</th>
-        <th>T2</th>
-        <th>T3</th>
-        <th>T4</th>
-        <th>T5</th>
-        <th>T6</th>
-        <th>T7</th>
+        <th>CN</th><th>T2</th><th>T3</th><th>T4</th>
+        <th>T5</th><th>T6</th><th>T7</th>
       </tr>
     </thead>
     <tbody id="calendarBody"></tbody>
@@ -110,7 +98,6 @@
 
 <script>
   const today = new Date();
-
   const year = today.getFullYear();
   const month = today.getMonth();
   const todayDate = today.getDate();
@@ -124,18 +111,28 @@
   document.getElementById("monthYear").innerText =
     `${monthNames[month]} ${year}`;
 
+  let currentPerson = document.getElementById("personSelect").value;
+
+  document.getElementById("personSelect").addEventListener("change", (e) => {
+    currentPerson = e.target.value;
+    generateCalendar(year, month);
+  });
+
+  function getKey(day) {
+    return `${currentPerson}-${year}-${month}-${day}`;
+  }
+
   function generateCalendar(year, month) {
     const tbody = document.getElementById("calendarBody");
     tbody.innerHTML = "";
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-
     const prevMonthDays = new Date(year, month, 0).getDate();
 
     let row = document.createElement("tr");
 
-    // 🔹 Fill previous month's days
+    // previous month days
     for (let i = firstDay - 1; i >= 0; i--) {
       const cell = document.createElement("td");
       cell.innerText = prevMonthDays - i;
@@ -143,19 +140,17 @@
       row.appendChild(cell);
     }
 
-    // 🔹 Current month
+    // current month
     for (let day = 1; day <= totalDays; day++) {
       const cell = document.createElement("td");
       cell.innerText = day;
 
-      const key = `${year}-${month}-${day}`;
+      const key = getKey(day);
 
-      // Load saved mark
       if (localStorage.getItem(key) === "X") {
         cell.classList.add("marked");
       }
 
-      // Highlight today
       if (day === todayDate) {
         cell.classList.add("today");
       }
