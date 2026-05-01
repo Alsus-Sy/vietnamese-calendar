@@ -30,6 +30,27 @@
     font-size: 16px;
   }
 
+  .toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .tool {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #dfe4ea;
+    cursor: pointer;
+    font-size: 18px;
+    user-select: none;
+  }
+
+  .tool.active {
+    background: #2f3542;
+    color: white;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -43,35 +64,31 @@
 
   td {
     width: 14.28%;
-    height: 60px;
-    cursor: pointer;
+    height: 70px;
     position: relative;
+    cursor: pointer;
+    border: 1px solid #f1f2f6;
+    vertical-align: top;
   }
 
-  td:hover {
-    background: #f1f2f6;
+  .day-number {
+    font-size: 14px;
+    margin-top: 4px;
+    display: block;
   }
 
-  /* BIGGER X */
+  /* X mark */
   .marked::after {
-    content: "X";
+    content: "✖";
     color: red;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: bold;
     position: absolute;
-    top: 5px;
+    top: 18px;
     right: 8px;
   }
 
-  .today {
-    background: #dfe4ff;
-  }
-
-  .other-month {
-    color: #b2bec3;
-  }
-
-  /* ⭐ NEW: strike line effect */
+  /* strike line */
   .striked {
     background: repeating-linear-gradient(
       135deg,
@@ -85,11 +102,21 @@
   .striked::before {
     content: "";
     position: absolute;
-    left: 0;
     top: 50%;
+    left: 0;
     width: 100%;
     height: 2px;
     background: red;
+  }
+
+  .today {
+    background: #dfe4ff;
+  }
+
+  /* previous/next month days */
+  .other-month {
+    color: #b2bec3;
+    background: #fafafa;
   }
 </style>
 </head>
@@ -101,9 +128,14 @@
   <h2 id="monthYear"></h2>
 
   <select id="personSelect">
-    <option value="person1">Person 1</option>
-    <option value="person2">Person 2</option>
+    <option value="person1">Bon / Duyen</option>
+    <option value="person2">Xiu</option>
   </select>
+
+  <div class="toolbar">
+    <div class="tool active" id="xTool">✖</div>
+    <div class="tool" id="strikeTool">〰</div>
+  </div>
 
   <table>
     <thead>
@@ -132,15 +164,50 @@
     `${monthNames[month]} ${year}`;
 
   let currentPerson = document.getElementById("personSelect").value;
-  let startCell = null; // ⭐ NEW for touch range selection
+  let selectedTool = "x";
 
   document.getElementById("personSelect").addEventListener("change", (e) => {
     currentPerson = e.target.value;
     generateCalendar(year, month);
   });
 
-  function getKey(day) {
-    return `${currentPerson}-${year}-${month}-${day}`;
+  document.getElementById("xTool").onclick = () => setTool("x");
+  document.getElementById("strikeTool").onclick = () => setTool("strike");
+
+  function setTool(tool) {
+    selectedTool = tool;
+    document.querySelectorAll(".tool").forEach(t => t.classList.remove("active"));
+
+    if (tool === "x") document.getElementById("xTool").classList.add("active");
+    if (tool === "strike") document.getElementById("strikeTool").classList.add("active");
+  }
+
+  function getKey(y, m, d) {
+    return `${currentPerson}-${y}-${m}-${d}`;
+  }
+
+  function getState(y, m, d) {
+    const data = localStorage.getItem(getKey(y, m, d));
+    return data ? JSON.parse(data) : { x: false, strike: false };
+  }
+
+  function saveState(y, m, d, state) {
+    localStorage.setItem(getKey(y, m, d), JSON.stringify(state));
+  }
+
+  function handleClick(y, m, d, cell) {
+    const state = getState(y, m, d);
+
+    if (selectedTool === "x") {
+      state.x = !state.x;
+    }
+
+    if (selectedTool === "strike") {
+      state.strike = !state.strike;
+    }
+
+    saveState(y, m, d, state);
+    generateCalendar(year, month);
   }
 
   function generateCalendar(year, month) {
@@ -153,70 +220,44 @@
 
     let row = document.createElement("tr");
 
-    // previous month days
+    // previous month days (NOW CLICKABLE)
+    const prevYear = month === 0 ? year - 1 : year;
+    const prevMonth = month === 0 ? 11 : month - 1;
+
     for (let i = firstDay - 1; i >= 0; i--) {
+      const day = prevMonthDays - i;
+
       const cell = document.createElement("td");
-      cell.innerText = prevMonthDays - i;
       cell.classList.add("other-month");
+
+      const state = getState(prevYear, prevMonth, day);
+
+      if (state.x) cell.classList.add("marked");
+      if (state.strike) cell.classList.add("striked");
+
+      cell.innerHTML = `<span class="day-number">${day}</span>`;
+
+      cell.addEventListener("click", () => {
+        handleClick(prevYear, prevMonth, day, cell);
+      });
+
       row.appendChild(cell);
     }
 
     // current month
     for (let day = 1; day <= totalDays; day++) {
       const cell = document.createElement("td");
-      cell.innerText = day;
 
-      const key = getKey(day);
+      const state = getState(year, month, day);
 
-      if (localStorage.getItem(key) === "X") {
-        cell.classList.add("marked");
-      }
+      if (state.x) cell.classList.add("marked");
+      if (state.strike) cell.classList.add("striked");
+      if (day === todayDate) cell.classList.add("today");
 
-      if (day === todayDate) {
-        cell.classList.add("today");
-      }
+      cell.innerHTML = `<span class="day-number">${day}</span>`;
 
-      // click toggle X
       cell.addEventListener("click", () => {
-        if (cell.classList.contains("marked")) {
-          cell.classList.remove("marked");
-          localStorage.removeItem(key);
-        } else {
-          cell.classList.add("marked");
-          localStorage.setItem(key, "X");
-        }
-      });
-
-      // ⭐ NEW: touch start
-      cell.addEventListener("touchstart", () => {
-        if (cell.classList.contains("other-month")) return;
-        startCell = cell;
-      });
-
-      // ⭐ NEW: touch end (create strike range)
-      cell.addEventListener("touchend", () => {
-        if (!startCell) return;
-
-        const start = parseInt(startCell.innerText);
-        const end = parseInt(cell.innerText);
-
-        const min = Math.min(start, end);
-        const max = Math.max(start, end);
-
-        document.querySelectorAll("td").forEach(td => {
-          const num = parseInt(td.innerText);
-
-          if (
-            !isNaN(num) &&
-            !td.classList.contains("other-month") &&
-            num >= min &&
-            num <= max
-          ) {
-            td.classList.add("striked");
-          }
-        });
-
-        startCell = null;
+        handleClick(year, month, day, cell);
       });
 
       row.appendChild(cell);
