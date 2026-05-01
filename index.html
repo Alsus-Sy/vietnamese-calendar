@@ -52,7 +52,7 @@
     background: #f1f2f6;
   }
 
-  /* BIG X */
+  /* BIGGER X */
   .marked::after {
     content: "X";
     color: red;
@@ -70,6 +70,27 @@
   .other-month {
     color: #b2bec3;
   }
+
+  /* ⭐ NEW: strike line effect */
+  .striked {
+    background: repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 6px,
+      rgba(0,0,0,0.15) 6px,
+      rgba(0,0,0,0.15) 8px
+    );
+  }
+
+  .striked::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 2px;
+    background: red;
+  }
 </style>
 </head>
 
@@ -79,10 +100,9 @@
 
   <h2 id="monthYear"></h2>
 
-  <!-- 👇 Dropdown for people -->
   <select id="personSelect">
-    <option value="person1">Xiu</option>
-    <option value="person2">Bon /Duyen</option>
+    <option value="person1">Person 1</option>
+    <option value="person2">Person 2</option>
   </select>
 
   <table>
@@ -112,6 +132,7 @@
     `${monthNames[month]} ${year}`;
 
   let currentPerson = document.getElementById("personSelect").value;
+  let startCell = null; // ⭐ NEW for touch range selection
 
   document.getElementById("personSelect").addEventListener("change", (e) => {
     currentPerson = e.target.value;
@@ -155,6 +176,7 @@
         cell.classList.add("today");
       }
 
+      // click toggle X
       cell.addEventListener("click", () => {
         if (cell.classList.contains("marked")) {
           cell.classList.remove("marked");
@@ -163,6 +185,38 @@
           cell.classList.add("marked");
           localStorage.setItem(key, "X");
         }
+      });
+
+      // ⭐ NEW: touch start
+      cell.addEventListener("touchstart", () => {
+        if (cell.classList.contains("other-month")) return;
+        startCell = cell;
+      });
+
+      // ⭐ NEW: touch end (create strike range)
+      cell.addEventListener("touchend", () => {
+        if (!startCell) return;
+
+        const start = parseInt(startCell.innerText);
+        const end = parseInt(cell.innerText);
+
+        const min = Math.min(start, end);
+        const max = Math.max(start, end);
+
+        document.querySelectorAll("td").forEach(td => {
+          const num = parseInt(td.innerText);
+
+          if (
+            !isNaN(num) &&
+            !td.classList.contains("other-month") &&
+            num >= min &&
+            num <= max
+          ) {
+            td.classList.add("striked");
+          }
+        });
+
+        startCell = null;
       });
 
       row.appendChild(cell);
